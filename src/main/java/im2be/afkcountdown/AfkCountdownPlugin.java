@@ -18,7 +18,7 @@ import java.time.Duration;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Afk Countdown",
+	name = "AFK Countdown",
 	description = "Shows you exactly how many seconds it will take before you log out due to inactivity",
 	tags = {"afk", "timer", "countdown", "log", "logout"}
 )
