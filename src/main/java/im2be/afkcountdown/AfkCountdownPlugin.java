@@ -125,14 +125,6 @@ public class AfkCountdownPlugin extends Plugin
 
 	private void createTimer(Duration duration)
 	{
-		long ms = duration.toMillis();
-		long seconds = ms / 1000;
-		long SS = seconds % 60;
-		long HH = seconds / 3600;
-		long MM = (seconds % 3600) / 60;
-		String timeInHHMMSS = String.format("%02d:%02d:%02d.%03d", HH, MM, SS, ms % 1000);
-		log.info("Timer start: " + timeInHHMMSS);
-
 		removeTimer();
 		currentTimer = new AfkCountdownTimer(duration, LOGOUT_IMAGE, this, true);
 		infoBoxManager.addInfoBox(currentTimer);
