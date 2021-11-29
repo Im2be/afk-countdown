@@ -15,6 +15,7 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.util.ImageUtil;
 import java.awt.image.BufferedImage;
 import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @PluginDescriptor(
@@ -33,6 +34,8 @@ public class AfkCountdownPlugin extends Plugin
 
 	@Getter
 	private AfkCountdownTimer currentTimer;
+
+	@Getter Instant timerStartTime;
 
 	@Inject
 	private InfoBoxManager infoBoxManager;
@@ -95,7 +98,7 @@ public class AfkCountdownPlugin extends Plugin
 
 			if (durationMillis >= 0)
 			{
-				createTimer(Duration.ofMillis(durationMillis));
+				setTimer(Duration.ofMillis(durationMillis));
 			}
 			else
 			{
@@ -121,12 +124,22 @@ public class AfkCountdownPlugin extends Plugin
 	{
 		infoBoxManager.removeInfoBox(currentTimer);
 		currentTimer = null;
+		timerStartTime = null;
 	}
 
-	private void createTimer(Duration duration)
+	private void setTimer(Duration duration)
 	{
-		removeTimer();
-		currentTimer = new AfkCountdownTimer(duration, LOGOUT_IMAGE, this, true);
-		infoBoxManager.addInfoBox(currentTimer);
+		final Instant now = Instant.now();
+		if (currentTimer == null)
+		{
+			currentTimer = new AfkCountdownTimer(duration, LOGOUT_IMAGE, this);
+			timerStartTime = now;
+			infoBoxManager.addInfoBox(currentTimer);
+		}
+		else
+		{
+			final Duration newDuration = duration.plus(Duration.between(timerStartTime, now));
+			currentTimer.setDuration(newDuration);
+		}
 	}
 }

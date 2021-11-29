@@ -13,15 +13,11 @@ import java.time.temporal.ChronoUnit;
 
 public class AfkCountdownTimer extends Timer
 {
-    @Getter
-    @Setter
-    private boolean visible;
 
-    AfkCountdownTimer(Duration duration, BufferedImage image, Plugin plugin, boolean visible)
+    AfkCountdownTimer(Duration duration, BufferedImage image, Plugin plugin)
     {
         super(duration.toMillis(), ChronoUnit.MILLIS, image, plugin);
         setTooltip("Time until you log out due to inactivity");
-        this.visible = visible;
     }
 
     @Override
@@ -35,11 +31,5 @@ public class AfkCountdownTimer extends Timer
         }
 
         return Color.WHITE;
-    }
-
-    @Override
-    public boolean render()
-    {
-        return visible && super.render();
     }
 }
