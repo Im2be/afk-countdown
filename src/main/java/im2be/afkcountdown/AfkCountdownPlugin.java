@@ -2,15 +2,19 @@ package im2be.afkcountdown;
 
 import javax.inject.Inject;
 
+import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import net.runelite.client.util.ImageUtil;
 import java.awt.image.BufferedImage;
@@ -40,6 +44,15 @@ public class AfkCountdownPlugin extends Plugin
 	@Inject
 	private InfoBoxManager infoBoxManager;
 
+	@Inject
+	private AfkCountdownOverlay overlay;
+
+	@Inject
+	private OverlayManager overlayManager;
+
+	@Inject
+	private AfkCountdownConfig config;
+
 	private static final BufferedImage LOGOUT_IMAGE;
 	private boolean active = false;
 
@@ -54,6 +67,8 @@ public class AfkCountdownPlugin extends Plugin
 	protected void startUp() throws Exception
 	{
 		active = true;
+		if (config.renderOnLogoutStone())
+			overlayManager.add(overlay);
 	}
 
 	@Override
@@ -62,8 +77,31 @@ public class AfkCountdownPlugin extends Plugin
 		active = false;
 		lastIdleTicks = -1;
 		removeTimer();
+		overlayManager.remove(overlay);
 	}
 
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		if (!AfkCountdownConfig.GROUP.equals(event.getGroup())) return;
+
+		if ("renderOnLogoutStone".equals(event.getKey())) {
+			if (config.renderOnLogoutStone()) {
+				overlayManager.add(overlay);
+				removeTimer();
+			} else {
+				overlayManager.remove(overlay);
+
+				// emulate infobox timer creation similar to onClientTick does
+				final long durationMillis = (AFK_LOG_TICKS - getIdleTicks()) * AFK_LOG_TIME.toMillis() / AFK_LOG_TICKS + 999;
+				setTimer(Duration.ofMillis(durationMillis));
+			}
+		}
+	}
+
+	@Provides
+	AfkCountdownConfig provideConfig(ConfigManager configManager) {
+		return configManager.getConfig(AfkCountdownConfig.class);
+	}
 
 	private int getIdleTicks()
 	{
@@ -99,6 +137,7 @@ public class AfkCountdownPlugin extends Plugin
 			if (durationMillis >= 0)
 			{
 				setTimer(Duration.ofMillis(durationMillis));
+				overlay.setTimer(durationMillis);
 			}
 			else
 			{
@@ -129,6 +168,8 @@ public class AfkCountdownPlugin extends Plugin
 
 	private void setTimer(Duration duration)
 	{
+		if (config.renderOnLogoutStone()) return;
+
 		final Instant now = Instant.now();
 		if (currentTimer == null)
 		{
