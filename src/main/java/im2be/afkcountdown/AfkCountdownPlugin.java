@@ -6,6 +6,7 @@ import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.Constants;
 import net.runelite.api.GameState;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
@@ -29,10 +30,6 @@ import java.time.Instant;
 )
 public class AfkCountdownPlugin extends Plugin
 {
-	public static long AFK_LOG_TICKS = 15000;
-	public static Duration AFK_LOG_TIME = Duration.ofMinutes(5);
-
-
 	@Inject
 	private Client client;
 
@@ -56,7 +53,7 @@ public class AfkCountdownPlugin extends Plugin
 	private static final BufferedImage LOGOUT_IMAGE;
 	private boolean active = false;
 
-	private long lastIdleTicks = -1;
+	private long lastIdleDuration = -1;
 
 	static
 	{
@@ -75,7 +72,7 @@ public class AfkCountdownPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		active = false;
-		lastIdleTicks = -1;
+		lastIdleDuration = -1;
 		removeTimer();
 		overlayManager.remove(overlay);
 	}
@@ -92,10 +89,14 @@ public class AfkCountdownPlugin extends Plugin
 				overlayManager.remove(overlay);
 
 				// emulate infobox timer creation similar to onClientTick does
-				final long durationMillis = (AFK_LOG_TICKS - getIdleTicks()) * AFK_LOG_TIME.toMillis() / AFK_LOG_TICKS + 999;
-				setTimer(Duration.ofMillis(durationMillis));
+				setTimer(Duration.ofMillis(getDurationMillis()));
 			}
 		}
+	}
+
+	private long getDurationMillis()
+	{
+		return Constants.CLIENT_TICK_LENGTH * (client.getIdleTimeout() - getIdleTicks()) + 999;
 	}
 
 	@Provides
@@ -121,18 +122,15 @@ public class AfkCountdownPlugin extends Plugin
 			return;
 		}
 
-		final long idleTicks = getIdleTicks();
-		final long diff = AFK_LOG_TICKS - idleTicks;
+		final long durationMillis = getDurationMillis();
 
-		if (diff < 0)
+		if (durationMillis < 0)
 		{
 			return;
 		}
 
-		if (lastIdleTicks == -1 || idleTicks < lastIdleTicks)
+		if (lastIdleDuration == -1 || durationMillis < lastIdleDuration)
 		{
-			final long afkLogMillis = AFK_LOG_TIME.toMillis();
-			final long durationMillis = diff * afkLogMillis / AFK_LOG_TICKS + 999;
 
 			if (durationMillis >= 0)
 			{
@@ -145,7 +143,7 @@ public class AfkCountdownPlugin extends Plugin
 			}
 		}
 
-		lastIdleTicks = idleTicks;
+		lastIdleDuration = durationMillis;
 	}
 
 	@Subscribe
@@ -154,7 +152,7 @@ public class AfkCountdownPlugin extends Plugin
 		if (gameStateChanged.getGameState() != GameState.LOGGED_IN)
 		{
 			removeTimer();
-			lastIdleTicks = -1;
+			lastIdleDuration = -1;
 		}
 	}
 
