@@ -45,9 +45,18 @@ public class AfkCountdownOverlay extends Overlay {
 
         Widget toDrawOn;
         if (client.isResized()) {
+
+            // Default to classic layout logout button
             toDrawOn = client.getWidget(WidgetInfo.RESIZABLE_VIEWPORT_LOGOUT_TAB);
+
+            // else try classic while-bank-is-open logout button (or where it would be, at least)
+            if (toDrawOn == null || toDrawOn.isHidden())
+                toDrawOn = client.getWidget(WidgetInfo.RESIZABLE_VIEWPORT_INVENTORY_PARENT);
+
+            // else try logout button next to minimap for modern layout
             if (toDrawOn == null || toDrawOn.isHidden())
                 toDrawOn = client.getWidget(WidgetInfo.RESIZABLE_MINIMAP_LOGOUT_BUTTON);
+
         } else {
             toDrawOn = client.getWidget(WidgetInfo.FIXED_VIEWPORT_LOGOUT_TAB);
         }
